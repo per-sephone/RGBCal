@@ -1,7 +1,13 @@
+/// This crate provides embedded functionality for controlling RGB LEDs with Pulse Width Modulation on the microbit v2.
 use crate::*;
 
-type RgbPins = [Output<'static, AnyPin>; 3];
+/// Type alias for RGB pins connected to the LED light.
+pub type RgbPins = [Output<'static, AnyPin>; 3];
 
+/// Struct representing an RGB LED Pins:
+/// Contains the pins for red, ground, green and blue,
+/// the levels for each pin
+/// and the time for each tick
 pub struct Rgb {
     rgb: RgbPins,
     // Shadow variables to minimize lock contention.
@@ -10,10 +16,17 @@ pub struct Rgb {
 }
 
 impl Rgb {
+    /// Calculates the time for each tick based on the passed in frame rate.
+    /// # Arguments
+    /// * `frame_rate` - the frame_rate for each color display.
     fn frame_tick_time(frame_rate: u64) -> u64 {
         1_000_000 / (3 * frame_rate * LEVELS as u64)
     }
 
+    /// Initializes the RGB LED controller with the specified RGB pins and frame rate.
+    /// # Arguments
+    /// * `rgb` - An array of output pins representing each color pin on the LED.
+    /// * `frame_rate` - The desired frame rate for the RGB color switching.
     pub fn new(rgb: RgbPins, frame_rate: u64) -> Self {
         let tick_time = Self::frame_tick_time(frame_rate);
         Self {
@@ -23,6 +36,10 @@ impl Rgb {
         }
     }
 
+    /// Executes a step in the RGB color switching.
+    /// Controls the Pulse Width Modulation of each color based on the current level.
+    /// # Arguments
+    /// * `led` - The array that contains an index for each color (0 for red, 1 for green, 2 for blue).
     async fn step(&mut self, led: usize) {
         let level = self.levels[led];
         if level > 0 {
@@ -37,7 +54,8 @@ impl Rgb {
             Timer::after_micros(off_time).await;
         }
     }
-
+    /// Runs the RGB loop.
+    /// Continuously updates the RGB LED levels and executes each color step.
     pub async fn run(mut self) -> ! {
         loop {
             self.levels = get_rgb_levels().await;

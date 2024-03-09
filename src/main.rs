@@ -28,11 +28,18 @@ use num_traits::float::FloatCore;
 pub static RGB_LEVELS: Mutex<ThreadModeRawMutex, [u32; 3]> = Mutex::new([0; 3]);
 pub const LEVELS: u32 = 16;
 
+/// Asyncronously retrieves the current RGB levels.
+/// Acquires a lock on the RGB levels array using a mutex and returns a copy
+/// of the array containing the current RGB levels.
 async fn get_rgb_levels() -> [u32; 3] {
     let rgb_levels = RGB_LEVELS.lock().await;
     *rgb_levels
 }
 
+/// Asynchronously sets RGB levels.
+/// # Arguments
+/// - `setter`: A closure that takes a mutable reference to an array of three unsigned 32-bit integers, 
+/// representing RGB levels, and modifies it in place.
 async fn set_rgb_levels<F>(setter: F)
 where
     F: FnOnce(&mut [u32; 3]),
@@ -41,6 +48,9 @@ where
     setter(&mut rgb_levels);
 }
 
+/// Entry point:
+/// Grabs the boards peripherals, including the LED pins, knob, and buttons
+/// configures the Analog to Digital converter,
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) -> ! {
     rtt_init_print!();
