@@ -38,7 +38,7 @@ async fn get_rgb_levels() -> [u32; 3] {
 
 /// Asynchronously sets RGB levels.
 /// # Arguments
-/// - `setter`: A closure that takes a mutable reference to an array of three unsigned 32-bit integers, 
+/// - `setter`: A closure that takes a mutable reference to an array of three unsigned 32-bit integers,
 /// representing RGB levels, and modifies it in place.
 async fn set_rgb_levels<F>(setter: F)
 where
@@ -60,11 +60,12 @@ async fn main(_spawner: Spawner) -> ! {
         SAADC => saadc::InterruptHandler;
     });
 
+    let frame_rate: u64 = 100;
     let led_pin = |p| Output::new(p, Level::Low, OutputDrive::Standard);
     let red = led_pin(AnyPin::from(board.p9));
     let green = led_pin(AnyPin::from(board.p8));
     let blue = led_pin(AnyPin::from(board.p16));
-    let rgb: Rgb = Rgb::new([red, green, blue], 100);
+    let rgb: Rgb = Rgb::new([red, green, blue], frame_rate);
 
     let mut saadc_config = saadc::Config::default();
     saadc_config.resolution = saadc::Resolution::_14BIT;
@@ -75,7 +76,7 @@ async fn main(_spawner: Spawner) -> ! {
         [saadc::ChannelConfig::single_ended(board.p2)],
     );
     let knob = Knob::new(saadc).await;
-    let mut ui = Ui::new(knob, board.btn_a, board.btn_b);
+    let mut ui = Ui::new(knob, board.btn_a, board.btn_b, frame_rate);
 
     join::join(rgb.run(), ui.run()).await;
 

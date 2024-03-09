@@ -1,4 +1,3 @@
-
 /// This crate provides functionality for interfacing with a knob using an ADC (Analog to Digital Converter).
 use crate::*;
 /// Type alias for ADC (Analog to Digital Converter).

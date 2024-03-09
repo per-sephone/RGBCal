@@ -19,10 +19,17 @@ impl UiState {
         }
         rprintln!("frame rate: {}", self.frame_rate);
     }
+    fn new(rate: u64) -> Self {
+        Self {
+            levels: [LEVELS - 1, LEVELS - 1, LEVELS - 1],
+            frame_rate: rate,
+        }
+    }
 }
 
-/// the default state for each color of light.
+/// Updates the frame rate
 impl Default for UiState {
+    /// the default state for each color of light.
     fn default() -> Self {
         Self {
             levels: [LEVELS - 1, LEVELS - 1, LEVELS - 1],
@@ -48,12 +55,13 @@ impl Ui {
     /// * `knob` - the connected knob on the breadboard.
     /// * `_button_a` - Button A on the microbit.
     /// * `_button_b` - Button B on the microbit.
-    pub fn new(knob: Knob, _button_a: Button, _button_b: Button) -> Self {
+    pub fn new(knob: Knob, _button_a: Button, _button_b: Button, frame_rate: u64) -> Self {
         Self {
             knob,
             _button_a,
             _button_b,
-            state: UiState::default(),
+            //state: UiState::default(),
+            state: UiState::new(frame_rate),
         }
     }
 
