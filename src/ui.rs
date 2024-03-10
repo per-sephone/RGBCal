@@ -72,22 +72,15 @@ impl Ui {
                 rprintln!("RED LED");
                 self.change_color_measurement(0).await
             }
-            if self.button_a.is_low() {
+            else if self.button_a.is_low() {
                 rprintln!("BLUE LED");
                 self.change_color_measurement(2).await
             }
-            if self.button_b.is_low() {
+            else if self.button_b.is_low() {
                 rprintln!("GREEN LED");
                 self.change_color_measurement(1).await
             }
-        
-            //no buttons -> change the frame rate only
-            self.state.frame_rate = self.knob.measure().await as u64 * 10 + 10;
-            set_frame_rate(|fr | {
-                *fr = self.state.frame_rate;
-            }).await;
-            self.state.show();
-            loop {
+            else {
                 let level = self.knob.measure().await as u64 * 10 + 10;
                 if level != self.state.frame_rate {
                     self.state.frame_rate = level;
@@ -102,25 +95,14 @@ impl Ui {
 
     }
 
-    pub async fn change_color_measurement(&mut self, position: usize) -> ! {
+    pub async fn change_color_measurement(&mut self, position: usize) -> () {
         self.state.levels[position] = self.knob.measure().await;
         set_rgb_levels(|rgb| {
             *rgb = self.state.levels;
         })
         .await;
         self.state.show();
-        loop {
-            let level = self.knob.measure().await;
-            if level != self.state.levels[position] {
-                self.state.levels[position] = level;
-                self.state.show();
-                set_rgb_levels(|rgb| {
-                    *rgb = self.state.levels;
-                })
-                .await;
-            }
-            Timer::after_millis(50).await;
-        }
+        Timer::after_millis(50).await;
     }
 
 }
