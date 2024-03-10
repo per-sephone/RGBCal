@@ -26,6 +26,7 @@ use microbit_bsp::{
 use num_traits::float::FloatCore;
 
 pub static RGB_LEVELS: Mutex<ThreadModeRawMutex, [u32; 3]> = Mutex::new([0; 3]);
+pub static FRAME_RATE: Mutex<ThreadModeRawMutex, u64> = Mutex::new(0);
 pub const LEVELS: u32 = 16;
 
 /// Asyncronously retrieves the current RGB levels.
@@ -35,6 +36,11 @@ async fn get_rgb_levels() -> [u32; 3] {
     let rgb_levels = RGB_LEVELS.lock().await;
     *rgb_levels
 }
+
+//async fn get_frame_rate() -> u64 {
+//    let frame_rate = FRAME_RATE.lock().await;
+//    *frame_rate
+//}
 
 /// Asynchronously sets RGB levels.
 /// # Arguments
@@ -46,6 +52,14 @@ where
 {
     let mut rgb_levels = RGB_LEVELS.lock().await;
     setter(&mut rgb_levels);
+}
+
+async fn set_frame_rate<F>(setter: F)
+where
+    F: FnOnce(&mut u64),
+{
+    let mut frame_rate = FRAME_RATE.lock().await;
+    setter(&mut frame_rate);
 }
 
 /// Entry point:
@@ -60,7 +74,7 @@ async fn main(_spawner: Spawner) -> ! {
         SAADC => saadc::InterruptHandler;
     });
 
-    let frame_rate: u64 = 100;
+    let frame_rate: u64 = 40;
     let led_pin = |p| Output::new(p, Level::Low, OutputDrive::Standard);
     let red = led_pin(AnyPin::from(board.p9));
     let green = led_pin(AnyPin::from(board.p8));
@@ -76,6 +90,7 @@ async fn main(_spawner: Spawner) -> ! {
         [saadc::ChannelConfig::single_ended(board.p2)],
     );
     let knob = Knob::new(saadc).await;
+
     let mut ui = Ui::new(knob, board.btn_a, board.btn_b, frame_rate);
 
     join::join(rgb.run(), ui.run()).await;

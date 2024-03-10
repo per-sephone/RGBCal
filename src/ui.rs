@@ -44,8 +44,8 @@ impl Default for UiState {
 /// the state of the UI
 pub struct Ui {
     knob: Knob,
-    _button_a: Button,
-    _button_b: Button,
+    button_a: Button,
+    button_b: Button,
     state: UiState,
 }
 
@@ -55,11 +55,11 @@ impl Ui {
     /// * `knob` - the connected knob on the breadboard.
     /// * `_button_a` - Button A on the microbit.
     /// * `_button_b` - Button B on the microbit.
-    pub fn new(knob: Knob, _button_a: Button, _button_b: Button, frame_rate: u64) -> Self {
+    pub fn new(knob: Knob, button_a: Button, button_b: Button, frame_rate: u64) -> Self {
         Self {
             knob,
-            _button_a,
-            _button_b,
+            button_a,
+            button_b,
             //state: UiState::default(),
             state: UiState::new(frame_rate),
         }
@@ -67,7 +67,43 @@ impl Ui {
 
     /// Runs the UI, continuously updating RGB levels based on knob input.
     pub async fn run(&mut self) -> ! {
-        self.state.levels[2] = self.knob.measure().await;
+        loop {
+            if self.button_a.is_low() && self.button_b.is_low() {
+                rprintln!("RED LED");
+                self.change_color_measurement(0).await
+            }
+            if self.button_a.is_low() {
+                rprintln!("BLUE LED");
+                self.change_color_measurement(2).await
+            }
+            if self.button_b.is_low() {
+                rprintln!("GREEN LED");
+                self.change_color_measurement(1).await
+            }
+        
+            //no buttons -> change the frame rate only
+            self.state.frame_rate = self.knob.measure().await as u64 * 10 + 10;
+            set_frame_rate(|fr | {
+                *fr = self.state.frame_rate;
+            }).await;
+            self.state.show();
+            loop {
+                let level = self.knob.measure().await as u64 * 10 + 10;
+                if level != self.state.frame_rate {
+                    self.state.frame_rate = level;
+                    self.state.show();
+                    set_frame_rate(|fr | {
+                        *fr = self.state.frame_rate;
+                    }).await;
+                }
+                Timer::after_millis(50).await;
+            }
+        }
+
+    }
+
+    pub async fn change_color_measurement(&mut self, position: usize) -> ! {
+        self.state.levels[position] = self.knob.measure().await;
         set_rgb_levels(|rgb| {
             *rgb = self.state.levels;
         })
@@ -75,8 +111,8 @@ impl Ui {
         self.state.show();
         loop {
             let level = self.knob.measure().await;
-            if level != self.state.levels[2] {
-                self.state.levels[2] = level;
+            if level != self.state.levels[position] {
+                self.state.levels[position] = level;
                 self.state.show();
                 set_rgb_levels(|rgb| {
                     *rgb = self.state.levels;
@@ -86,4 +122,5 @@ impl Ui {
             Timer::after_millis(50).await;
         }
     }
+
 }
