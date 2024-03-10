@@ -26,7 +26,7 @@ use microbit_bsp::{
 use num_traits::float::FloatCore;
 
 pub static RGB_LEVELS: Mutex<ThreadModeRawMutex, [u32; 3]> = Mutex::new([0; 3]);
-pub static FRAME_RATE: Mutex<ThreadModeRawMutex, u64> = Mutex::new(0);
+pub static FRAME_RATE: Mutex<ThreadModeRawMutex, u64> = Mutex::new(100);
 pub const LEVELS: u32 = 16;
 
 /// Asyncronously retrieves the current RGB levels.
@@ -37,10 +37,14 @@ async fn get_rgb_levels() -> [u32; 3] {
     *rgb_levels
 }
 
-//async fn get_frame_rate() -> u64 {
-//    let frame_rate = FRAME_RATE.lock().await;
-//    *frame_rate
-//}
+/// Asyncronously retrieves the current frame rate (from the UI).
+/// Acquires a lock on the frame rate using a mutex and returns a copy
+/// of the value containing the current frame rate.
+async fn get_frame_rate() -> u64 {
+    let frame_rate = FRAME_RATE.lock().await;
+    //rprintln!("Get Frame Rate: {}", *frame_rate);
+    *frame_rate
+}
 
 /// Asynchronously sets RGB levels.
 /// # Arguments
@@ -54,17 +58,23 @@ where
     setter(&mut rgb_levels);
 }
 
+/// Asynchronously sets the frame rate.
+/// # Arguments
+/// - `setter`: A closure that takes a mutable reference to an array of three unsigned 32-bit integers,
+/// representing RGB levels, and modifies it in place.
 async fn set_frame_rate<F>(setter: F)
 where
     F: FnOnce(&mut u64),
 {
     let mut frame_rate = FRAME_RATE.lock().await;
+    //rprintln!("Set Frame Rate: {}", *frame_rate);
     setter(&mut frame_rate);
 }
 
 /// Entry point:
 /// Grabs the boards peripherals, including the LED pins, knob, and buttons
 /// configures the Analog to Digital converter,
+/// and runs the UI and LED.
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) -> ! {
     rtt_init_print!();
@@ -74,12 +84,11 @@ async fn main(_spawner: Spawner) -> ! {
         SAADC => saadc::InterruptHandler;
     });
 
-    let frame_rate: u64 = 40;
     let led_pin = |p| Output::new(p, Level::Low, OutputDrive::Standard);
     let red = led_pin(AnyPin::from(board.p9));
     let green = led_pin(AnyPin::from(board.p8));
     let blue = led_pin(AnyPin::from(board.p16));
-    let rgb: Rgb = Rgb::new([red, green, blue], frame_rate);
+    let rgb: Rgb = Rgb::new([red, green, blue]).await;
 
     let mut saadc_config = saadc::Config::default();
     saadc_config.resolution = saadc::Resolution::_14BIT;
@@ -91,7 +100,7 @@ async fn main(_spawner: Spawner) -> ! {
     );
     let knob = Knob::new(saadc).await;
 
-    let mut ui = Ui::new(knob, board.btn_a, board.btn_b, frame_rate);
+    let mut ui = Ui::new(knob, board.btn_a, board.btn_b);
 
     join::join(rgb.run(), ui.run()).await;
 
