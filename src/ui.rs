@@ -62,16 +62,16 @@ impl Ui {
     /// based on knob input and buttons pressed.
     pub async fn run(&mut self) -> ! {
         loop {
+            //RED LED
             if self.button_a.is_low() && self.button_b.is_low() {
-                rprintln!("RED LED");
                 self.change_color_measurement(0).await
             }
+            //BLUE LED
             else if self.button_a.is_low() {
-                rprintln!("BLUE LED");
                 self.change_color_measurement(2).await
             }
+            //GREEN LED
             else if self.button_b.is_low() {
-                rprintln!("GREEN LED");
                 self.change_color_measurement(1).await
             }
             else { // no buttons pressed, controls the overall frame rate
