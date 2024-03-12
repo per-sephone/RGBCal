@@ -73,12 +73,13 @@ impl Ui {
             //GREEN LED
             else if self.button_b.is_low() {
                 self.change_color_measurement(1).await
-            }
-            else { // no buttons pressed, controls the overall frame rate
+            } else {
+                // no buttons pressed, controls the overall frame rate
                 self.state.frame_rate = self.knob.measure().await as u64 * 10 + 10;
-                set_frame_rate(|fr | {
+                set_frame_rate(|fr| {
                     *fr = self.state.frame_rate;
-                }).await;
+                })
+                .await;
                 self.state.show();
                 Timer::after_millis(50).await;
             }
@@ -89,7 +90,7 @@ impl Ui {
     /// Sets the level using a lock and setter method, shows the update level.
     /// # Arguments
     /// * `position` - the index in the levels array (0 for red, 1 for green, 2 for blue)
-    pub async fn change_color_measurement(&mut self, position: usize) -> () {
+    pub async fn change_color_measurement(&mut self, position: usize) {
         self.state.levels[position] = self.knob.measure().await;
         set_rgb_levels(|rgb| {
             *rgb = self.state.levels;
@@ -98,5 +99,4 @@ impl Ui {
         self.state.show();
         Timer::after_millis(50).await;
     }
-
 }
